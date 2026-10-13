@@ -10,30 +10,36 @@ The app works with two data adapters behind one contract, `Backend`, defined in
 
 No screen code changes between the two.
 
-## Set up Supabase (about 10 minutes)
+## Set up Supabase (about 5 minutes)
 
 1. **Create a project** at [supabase.com](https://supabase.com). Pick the
-   US West region for Burbank.
+   US West region for Burbank. (Done: `lhirannrwxcvqojuhrob`.)
 
-2. **Create the database.** Open **SQL Editor** and run these two files in
-   order:
-   1. [`supabase/migrations/20261008000000_init.sql`](../supabase/migrations/20261008000000_init.sql)
-      creates the tables, security rules, server functions, push trigger and
-      realtime.
-   2. [`supabase/migrations/20261008000100_seed_catalog.sql`](../supabase/migrations/20261008000100_seed_catalog.sql)
-      adds the services, prices, hours, locations and notification messages.
+2. **Create the database.** Open **SQL Editor → New query**, paste all of
+   [`supabase/setup.sql`](../supabase/setup.sql) and press **Run**. It
+   creates:
+   - the tables, security rules, server functions, push trigger and realtime
+   - the services, prices, hours, phone numbers, locations and notification
+     messages
+   - the demo logins: `admin@suzyscleaners.com` / `SuzyAdmin2026!` (staff)
+     and `demo@suzyscleaners.com` / `Demo1234!` (customer)
 
-   If you use the Supabase CLI instead, run `supabase link` and then
-   `supabase db push`.
+   `setup.sql` is all of `supabase/migrations/` in one file. If you use the
+   Supabase CLI instead, run `supabase link` and then `supabase db push`.
+   After editing a migration, run `npm run db:setup-file` to rebuild it.
 
-3. **Create the staff login.** Go to **Authentication → Users → Add user**.
-   - Email: `admin@suzyscleaners.com`
-   - Password: your choice. Use a stronger one than the demo password.
-   - Turn on **Auto confirm user**.
+   Until this has run, sign-in shows "the database hasn't been set up".
 
-   Then run [`supabase/promote_admin.sql`](../supabase/promote_admin.sql) in
-   the SQL Editor. This is the only way to make someone an admin. The app can
-   never grant it.
+3. **Before launch, secure the staff login.** The demo passwords are
+   published in the README.
+   - Change the admin password: **Authentication → Users →** the admin user
+     **→ Send password recovery**, or delete it and add it again with
+     **Add user**, then run
+     [`supabase/promote_admin.sql`](../supabase/promote_admin.sql).
+   - Delete the `demo@suzyscleaners.com` customer.
+
+   Running SQL in the dashboard is the only way to make someone an admin.
+   The app can never grant it.
 
 4. **Choose how customers sign up.** Go to **Authentication → Sign In /
    Providers → Email**.
