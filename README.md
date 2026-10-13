@@ -66,11 +66,11 @@ It runs on iOS and Android from one Expo / React Native codebase.
 
 ## Data: Supabase or on-device demo
 
-- **Supabase (production):** copy `.env.example` to `.env.local` and add your
-  project URL and anon key. The app switches to Supabase automatically. Setup
-  takes about 10 minutes: [docs/BACKEND.md](docs/BACKEND.md).
-- **On-device demo:** with no Supabase keys, the app runs on sample data
-  stored on the phone, using the accounts below.
+- **Supabase (production, the default):** `.env` points the app at the
+  Suzy's Supabase project. Before first use, run the database setup in
+  [docs/BACKEND.md](docs/BACKEND.md) (SQL migrations + staff login).
+- **On-device demo:** set `EXPO_PUBLIC_BACKEND=local` in `.env.local` to use
+  sample data stored on the phone, with the accounts below.
 
 ## Demo accounts (on-device demo only)
 

@@ -5,7 +5,7 @@ The app works with two data adapters behind one contract, `Backend`, defined in
 
 | Adapter | When it's used | Data lives |
 |---------|----------------|------------|
-| `SupabaseBackend` | `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set | Your Supabase project, shared by every phone |
+| `SupabaseBackend` | `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set (already in `.env`) | Your Supabase project, shared by every phone |
 | `LocalBackend` | No Supabase keys, or `EXPO_PUBLIC_BACKEND=local` | On the device only (demo) |
 
 No screen code changes between the two.
@@ -41,13 +41,14 @@ No screen code changes between the two.
      the app asks them to confirm before signing in.
    - If it's off, customers are signed in immediately after sign-up.
 
-5. **Connect the app.**
-   1. Copy `.env.example` to `.env.local`.
-   2. Fill in the **Project URL** and **anon public** key from **Project
-      Settings → API**. Never put the `service_role` key in the app.
-   3. Restart with `npx expo start --clear`.
-   4. For EAS builds, add the same two variables as EAS environment
-      variables.
+5. **Connect the app.** Already done: `.env` holds the project URL
+   (`https://lhirannrwxcvqojuhrob.supabase.co`) and the **publishable** key,
+   and Expo loads it automatically, including in EAS builds.
+   - After changing `.env`, restart with `npx expo start --clear` (Expo
+     bakes these values in at build time).
+   - To point a single machine at another project, put overrides in
+     `.env.local` (git-ignored).
+   - Never put the secret / `service_role` key in the app.
 
 6. **Push notifications.**
    1. Run `npx eas-cli init` so `extra.eas.projectId` is set in `app.json`.
