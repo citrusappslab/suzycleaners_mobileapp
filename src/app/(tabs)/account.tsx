@@ -1,14 +1,14 @@
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Alert } from '@/lib/dialog';
 import { BrandLogo } from '@/components/brand/BrandLogo';
-import { AppText, Avatar, Button, Card, Divider, ListRow, Screen, Toggle } from '@/components/ui';
+import { AppText, Avatar, Button, Card, Divider, Icon, ListRow, Screen, Toggle } from '@/components/ui';
 import { useMyOrders, useRewardsBalance, useSettings } from '@/hooks/data';
 import { businessPhones, callBusiness, emailBusiness, openDirections } from '@/lib/contact';
 import { useAuth } from '@/providers/AuthProvider';
 import { requestPermission } from '@/services/push';
-import { colors, spacing } from '@/theme';
+import { colors, fonts, radius, spacing } from '@/theme';
 
 export default function Account() {
   const { user, signOut, updateProfile } = useAuth();
@@ -17,6 +17,9 @@ export default function Account() {
   const { orders } = useMyOrders();
   const reservedOrders = orders.filter((o) => o.rewardRedemptionRequested && o.rewardDiscount === 0 && o.status !== 'cancelled');
   const availablePoints = Math.max(0, points - reservedOrders.length * 1000);
+  const readyRewards = Math.floor(availablePoints / 1000);
+  const progressPoints = availablePoints % 1000;
+  const progress = readyRewards > 0 ? progressPoints / 1000 : availablePoints / 1000;
 
   return (
     <Screen tabBarSpace>
@@ -57,12 +60,57 @@ export default function Account() {
       )}
 
       {user ? (
-        <Card tone="navy" style={{ marginTop: spacing.md, gap: spacing.xs }}>
-          <AppText variant="caption" style={{ color: colors.sunshine }}>Suzy’s Rewards</AppText>
-          <AppText style={{ color: colors.white, fontFamily: 'Inter_700Bold', fontSize: 30 }}>{availablePoints.toLocaleString()} available points</AppText>
-          <AppText variant="small" style={{ color: '#DCE6FA' }}>
-            {reservedOrders.length > 0 ? `${reservedOrders.length * 1000} points reserved for an open pickup${availablePoints >= 1000 ? ` · ${availablePoints} more available` : ''}.` : availablePoints >= 1000 ? 'Redeem 1,000 points for $100 off your next invoice.' : `${1000 - availablePoints} points until $100 off · Earn 10 points per $100 invoice.`}
-          </AppText>
+        <Card tone="navy" style={styles.rewardsCard}>
+          <View style={styles.rewardsHeader}>
+            <View style={styles.rewardsMark}><Icon name="star-four-points-outline" size={24} color={colors.navy900} /></View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="caption" style={{ color: colors.sunshine }}>Loyalty club</AppText>
+              <AppText style={styles.rewardsTitle}>Suzy’s Rewards</AppText>
+            </View>
+            {readyRewards > 0 ? (
+              <View style={styles.readyBadge}>
+                <Icon name="gift-outline" size={15} color={colors.navy900} />
+                <AppText style={styles.readyBadgeText}>{readyRewards} ready</AppText>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.pointsPanel}>
+            <AppText style={styles.balanceLabel}>AVAILABLE POINTS</AppText>
+            <View style={styles.balanceRow}>
+              <AppText style={styles.balance}>{availablePoints.toLocaleString()}</AppText>
+              <AppText style={styles.pointsWord}>points</AppText>
+            </View>
+            <AppText style={styles.pointsHint}>
+              {readyRewards > 0
+                ? `${readyRewards} $100 reward${readyRewards === 1 ? '' : 's'} ready${progressPoints > 0 ? ` · ${progressPoints}/1,000 toward the next` : ''}`
+                : `${availablePoints.toLocaleString()} of 1,000 points toward your first $100 reward`}
+            </AppText>
+            <View style={styles.progressTrack} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 1000, now: readyRewards > 0 ? progressPoints : availablePoints }}>
+              <View style={[styles.progressFill, { width: `${Math.min(100, progress * 100)}%` }]} />
+            </View>
+          </View>
+
+          <View style={styles.earnPanel}>
+            <View style={styles.earnRow}>
+              <Icon name="receipt-text-check-outline" size={19} color={colors.sunshine} />
+              <AppText style={styles.earnText}>Earn 10 points for each full $100 on your final invoice.</AppText>
+            </View>
+            <AppText style={styles.exampleText}>Example: a completed $250 invoice earns 20 points. Points post when your order is marked complete.</AppText>
+            <View style={styles.earnRow}>
+              <Icon name="ticket-percent-outline" size={19} color={colors.sunshine} />
+              <AppText style={styles.earnText}>1,000 points = $100 off an invoice of $100 or more.</AppText>
+            </View>
+          </View>
+
+          {reservedOrders.length > 0 ? (
+            <View style={styles.reservedNotice}>
+              <Icon name="lock-clock-outline" size={18} color={colors.sunshine} />
+              <AppText style={styles.reservedText}>{reservedOrders.length * 1000} points reserved for an open pickup. They’ll be released if you cancel.</AppText>
+            </View>
+          ) : null}
+
+          {readyRewards > 0 ? <Button title="Use a $100 reward" icon="star-four-points-outline" size="md" variant="gold" onPress={() => router.push('/schedule')} /> : null}
         </Card>
       ) : null}
 
@@ -124,17 +172,47 @@ export default function Account() {
       ) : null}
 
       {/* Staff entry is intentionally hidden: long-press the version label (or open suzyscleaners://staff-login). */}
-      <Pressable onLongPress={() => router.push('/staff-login')} delayLongPress={1200} accessible={false} style={styles.footer}>
-        <AppText variant="small" style={{ textAlign: 'center', color: colors.faint }}>
-          Suzy’s Cleaners · Est. 1996 · v{Constants.expoConfig?.version ?? '1.0.0'}
+      <View style={styles.footer}>
+        <Pressable onLongPress={() => router.push('/staff-login')} delayLongPress={1200} accessible={false}>
+          <AppText variant="small" style={{ textAlign: 'center', color: colors.faint }}>
+            Suzy’s Cleaners · Est. 1996 · v{Constants.expoConfig?.version ?? '1.0.0'}
+          </AppText>
+        </Pressable>
+        <AppText variant="small" style={styles.credit}>
+          App Developed by{' '}
+          <Link href="https://citrusappslab.com" accessibilityRole="link" accessibilityLabel="Visit Citrus Apps Lab" style={styles.creditLink}>
+            Citrus Apps Lab
+          </Link>
         </AppText>
-      </Pressable>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   profile: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
+  rewardsCard: { marginTop: spacing.md, padding: spacing.md, gap: spacing.md, overflow: 'hidden' },
+  rewardsHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rewardsMark: { width: 44, height: 44, borderRadius: 15, backgroundColor: colors.sunshine, alignItems: 'center', justifyContent: 'center' },
+  rewardsTitle: { fontFamily: fonts.display, fontSize: 21, lineHeight: 26, color: colors.white },
+  readyBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.sunshine, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 6 },
+  readyBadgeText: { fontFamily: fonts.semibold, fontSize: 12, color: colors.navy900 },
+  pointsPanel: { padding: spacing.md, borderRadius: radius.lg, backgroundColor: 'rgba(255,255,255,0.09)', gap: 5 },
+  balanceLabel: { fontFamily: fonts.semibold, fontSize: 10, letterSpacing: 1.2, color: '#C8D6F2' },
+  balanceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  balance: { fontFamily: fonts.bold, fontSize: 38, lineHeight: 44, color: colors.white },
+  pointsWord: { fontFamily: fonts.medium, fontSize: 15, color: '#DCE6FA' },
+  pointsHint: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: '#DCE6FA' },
+  progressTrack: { height: 8, borderRadius: radius.pill, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.18)', marginTop: 4 },
+  progressFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.sunshine },
+  earnPanel: { gap: spacing.xs },
+  earnRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs },
+  earnText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: colors.white },
+  exampleText: { marginLeft: 27, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 16, color: '#C8D6F2' },
+  reservedNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.xs, padding: spacing.sm, borderRadius: radius.md, backgroundColor: 'rgba(255,210,63,0.12)' },
+  reservedText: { flex: 1, fontFamily: fonts.medium, fontSize: 12, lineHeight: 17, color: '#FFF4CC' },
   group: { marginTop: spacing.md, paddingHorizontal: spacing.md },
-  footer: { paddingVertical: spacing.lg, marginTop: spacing.md },
+  footer: { alignItems: 'center', paddingVertical: spacing.lg, marginTop: spacing.md, gap: spacing.xs },
+  credit: { textAlign: 'center', color: colors.faint },
+  creditLink: { color: colors.royal, fontFamily: fonts.semibold, textDecorationLine: 'underline' },
 });

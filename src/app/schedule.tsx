@@ -180,22 +180,38 @@ function ScheduleForm() {
           </Pressable>
         </Card>
 
-        <Card padded={false} style={{ gap: spacing.sm, padding: spacing.md }}>
+        <Card padded={false} style={{ gap: spacing.xs, padding: spacing.md }}>
           <AppText variant="bodyStrong">Pickup minimum: 10 pieces</AppText>
           <AppText variant="small">No prices are shown at booking. A Suzy’s representative will inspect your items and send your final invoice.</AppText>
+        </Card>
+
+        <Card tone="navy" style={{ gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: colors.sunshine, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="star-four-points-outline" size={21} color={colors.navy900} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong" style={{ color: colors.white }}>Suzy’s Rewards</AppText>
+              <AppText variant="small" style={{ color: '#DCE6FA' }}>{availablePoints.toLocaleString()} available points</AppText>
+            </View>
+          </View>
+          <AppText variant="small" style={{ color: colors.white }}>
+            Earn 10 points for each full $100 on a completed invoice. Example: a $250 invoice earns 20 points.
+          </AppText>
+          <AppText variant="small" style={{ color: '#FFF4CC' }}>
+            1,000 points = $100 off an invoice of $100 or more.
+          </AppText>
           {availablePoints >= 1000 ? (
-            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: rewardRedemptionRequested }} onPress={() => setRewardRedemptionRequested((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: rewardRedemptionRequested }} onPress={() => setRewardRedemptionRequested((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: radius.md, padding: spacing.sm }}>
               <Checkbox checked={rewardRedemptionRequested} />
               <View style={{ flex: 1 }}>
-                <AppText variant="bodyStrong">Redeem 1,000 points for $100 off</AppText>
-                <AppText variant="small">Applied to your final invoice by our representative.</AppText>
+                <AppText variant="bodyStrong" style={{ color: colors.white }}>Use 1,000 points for $100 off</AppText>
+                <AppText variant="small" style={{ color: '#DCE6FA' }}>Your representative applies it to the final invoice.</AppText>
               </View>
             </Pressable>
           ) : reservedPoints > 0 ? (
-            <AppText variant="small">Your reward is reserved for an open pickup. It will be available again if you cancel.</AppText>
-          ) : (
-            <AppText variant="small">Earn 10 points for every $100 on a completed invoice. 1,000 points earns $100 off.</AppText>
-          )}
+            <AppText variant="small" style={{ color: '#DCE6FA' }}>Your points are reserved for an open pickup and will be released if you cancel.</AppText>
+          ) : null}
         </Card>
 
         {/* Addresses */}
