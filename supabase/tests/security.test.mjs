@@ -2,10 +2,11 @@
 // stand-ins for Supabase's auth schema, pg_net and roles, then checks the
 // security rules end to end. Run with: npm run test:db
 import { PGlite } from '@electric-sql/pglite';
+import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
 import fs from 'node:fs';
 process.on('unhandledRejection', (e) => { console.log(results.join('\n')); console.log('CRASH:', e.message, e.query ?? ''); process.exit(1); });
 const M = new URL('../migrations/', import.meta.url).pathname;
-const db = new PGlite();
+const db = new PGlite({ extensions: { pgcrypto } });
 const results = [];
 const ok = (name, cond, extra = '') => results.push(`${cond ? 'PASS' : 'FAIL'}  ${name}${extra ? '  — ' + extra : ''}`);
 const expectErr = async (name, sql, params, re) => {
@@ -17,7 +18,18 @@ const expectErr = async (name, sql, params, re) => {
 await db.exec(`
   create role anon nologin; create role authenticated nologin;
   create schema auth;
-  create table auth.users (id uuid primary key default gen_random_uuid(), email text, raw_user_meta_data jsonb default '{}');
+  create table auth.users (
+    instance_id uuid, id uuid primary key default gen_random_uuid(), aud text, role text, email text unique,
+    encrypted_password text, email_confirmed_at timestamptz, raw_app_meta_data jsonb, raw_user_meta_data jsonb default '{}',
+    created_at timestamptz, updated_at timestamptz, confirmation_token text, recovery_token text,
+    email_change_token_new text, email_change text, email_change_token_current text, phone_change text,
+    phone_change_token text, reauthentication_token text
+  );
+  create table auth.identities (
+    id uuid primary key default gen_random_uuid(), user_id uuid not null references auth.users on delete cascade,
+    provider_id text not null, provider text not null, identity_data jsonb not null,
+    last_sign_in_at timestamptz, created_at timestamptz, updated_at timestamptz, unique (provider_id, provider)
+  );
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   create schema extensions; create schema net;
   create table net.calls (url text, body jsonb);
@@ -38,8 +50,22 @@ await db.exec(`
 // ── users
 const cust = (await db.query(`insert into auth.users (email, raw_user_meta_data) values ('alex@example.com', '{"name":"Alex Morgan","phone":"(818) 555-0110","role":"admin"}') returning id`)).rows[0].id;
 const other = (await db.query(`insert into auth.users (email, raw_user_meta_data) values ('maria@example.com', '{"name":"Maria"}') returning id`)).rows[0].id;
-const adm = (await db.query(`insert into auth.users (email) values ('admin@suzyscleaners.com') returning id`)).rows[0].id;
-await db.query(`update public.profiles set role = 'admin' where email = 'admin@suzyscleaners.com'`);
+// Demo accounts come from the demo_accounts migration.
+const adm = (await db.query(`select id from auth.users where email = 'admin@suzyscleaners.com'`)).rows[0].id;
+const demo = (await db.query(`select id from auth.users where email = 'demo@suzyscleaners.com'`)).rows[0].id;
+const pw = async (email, password) =>
+  (await db.query(`select encrypted_password = extensions.crypt($2, encrypted_password) ok from auth.users where email = $1`, [email, password])).rows[0].ok;
+ok('demo admin password works', await pw('admin@suzyscleaners.com', 'SuzyAdmin2026!'));
+ok('demo admin rejects wrong password', !(await pw('admin@suzyscleaners.com', 'wrong')));
+ok('demo customer password works', await pw('demo@suzyscleaners.com', 'Demo1234!'));
+ok('demo admin has admin role', (await db.query(`select role from profiles where id=$1`, [adm])).rows[0].role === 'admin');
+ok('demo customer is a customer with saved addresses', (await db.query(`select role, jsonb_array_length(addresses) n from profiles where id=$1`, [demo])).rows.every((r) => r.role === 'customer' && r.n === 2));
+ok('demo users have email identities', (await db.query(`select count(*)::int c from auth.identities where user_id in ($1, $2)`, [adm, demo])).rows[0].c === 2);
+ok('auth token columns are not null', (await db.query(`select count(*)::int c from auth.users where id in ($1,$2) and (confirmation_token is null or recovery_token is null or email_change is null)`, [adm, demo])).rows[0].c === 0);
+// Running the demo migration again must not duplicate anything.
+await db.exec(fs.readFileSync(M + '20261013000000_demo_accounts.sql', 'utf8'));
+ok('demo migration is re-runnable', (await db.query(`select count(*)::int c from auth.users where email like '%@suzyscleaners.com'`)).rows[0].c === 2);
+ok('seed helper removed afterwards', (await db.query(`select count(*)::int c from pg_proc where proname = 'seed_demo_user'`)).rows[0].c === 0);
 ok('signup metadata cannot grant admin', (await db.query(`select role from profiles where id=$1`, [cust])).rows[0].role === 'customer');
 ok('welcome message created', (await db.query(`select count(*)::int c from messages where customer_id=$1 and sender='system'`, [cust])).rows[0].c === 1);
 
@@ -96,7 +122,7 @@ await expectErr('anon cannot call create_order', createSql, [JSON.stringify(insi
 await as('authenticated', adm);
 ok('admin sees all orders', (await db.query(`select count(*)::int c from orders`)).rows[0].c === 1);
 const custs = (await db.query(`select * from admin_list_customers()`)).rows;
-ok('admin_list_customers', custs.length === 2 && custs.some((c) => c.admin_list_customers.order_count === 1), JSON.stringify(custs[0].admin_list_customers).slice(0, 120));
+ok('admin_list_customers', custs.length === 3 && custs.some((c) => c.admin_list_customers.order_count === 1), JSON.stringify(custs[0].admin_list_customers).slice(0, 120));
 const convs = (await db.query(`select * from admin_list_conversations()`)).rows;
 ok('admin_list_conversations (unread=1)', convs.length === 1 && convs[0].admin_list_conversations.unread === 1);
 const upd = (await db.query(`select * from admin_update_order($1, 'ready_for_delivery', true, 68, null, 'Ready for delivery', 'Your order is ready for delivery.')`, [order.id])).rows[0];

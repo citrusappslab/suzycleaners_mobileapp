@@ -12,7 +12,7 @@ export * from './types';
 function createBackend(): Backend {
   if (env.backend === 'supabase') {
     if (!env.supabaseUrl || !env.supabaseAnonKey) {
-      throw new Error('EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY must be set to use the Supabase backend.');
+      throw new Error('EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY must be set to use the Supabase backend.');
     }
     return new SupabaseBackend(env.supabaseUrl, env.supabaseAnonKey);
   }

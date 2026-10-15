@@ -66,22 +66,23 @@ It runs on iOS and Android from one Expo / React Native codebase.
 
 ## Data: Supabase or on-device demo
 
-- **Supabase (production):** copy `.env.example` to `.env.local` and add your
-  project URL and anon key. The app switches to Supabase automatically. Setup
-  takes about 10 minutes: [docs/BACKEND.md](docs/BACKEND.md).
-- **On-device demo:** with no Supabase keys, the app runs on sample data
-  stored on the phone, using the accounts below.
+- **Supabase (production, the default):** `.env` points the app at the
+  Suzy's Supabase project. Before first use, run the database setup in
+  [docs/BACKEND.md](docs/BACKEND.md) (SQL migrations + staff login).
+- **On-device demo:** set `EXPO_PUBLIC_BACKEND=local` in `.env.local` to use
+  sample data stored on the phone, with the accounts below.
 
-## Demo accounts (on-device demo only)
+## Demo accounts
 
 | Role     | Email                     | Password         |
 |----------|---------------------------|------------------|
 | Admin    | admin@suzyscleaners.com   | SuzyAdmin2026!   |
 | Customer | demo@suzyscleaners.com    | Demo1234!        |
 
-Customers can also create their own account. Passwords are stored only as
-salted SHA-256 hashes, and the session token lives in the iOS Keychain /
-Android Keystore (`expo-secure-store`).
+These work with Supabase once `supabase/setup.sql` has been run (see
+[docs/BACKEND.md](docs/BACKEND.md)), and with the on-device demo. Customers
+can also create their own account. Change the admin password and delete the
+demo customer before launch.
 
 > The demo backend stores data **on the device**. To try the full loop on one
 > phone, book as the customer, sign out, sign in as staff, update the order,
@@ -144,6 +145,6 @@ docs/BACKEND.md           Supabase setup guide and security model
 - **Chamber badge:** swap the typographic Chamber mark in
   `src/components/brand/sections.tsx` for the official member badge if
   desired.
-- **Backend:** set up Supabase ([docs/BACKEND.md](docs/BACKEND.md)) and create
-  the staff login with a strong password. The demo passwords in
-  `src/config/demo.ts` only apply to the on-device demo.
+- **Backend:** run `supabase/setup.sql` in Supabase
+  ([docs/BACKEND.md](docs/BACKEND.md)), then change the demo admin password
+  and delete the demo customer.

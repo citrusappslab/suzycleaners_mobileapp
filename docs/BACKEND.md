@@ -5,38 +5,50 @@ The app works with two data adapters behind one contract, `Backend`, defined in
 
 | Adapter | When it's used | Data lives |
 |---------|----------------|------------|
-| `SupabaseBackend` | `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` are set | Your Supabase project, shared by every phone |
+| `SupabaseBackend` | `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are set (already in `.env`) | Your Supabase project, shared by every phone |
 | `LocalBackend` | No Supabase keys, or `EXPO_PUBLIC_BACKEND=local` | On the device only (demo) |
 
 No screen code changes between the two.
 
-## Set up Supabase (about 10 minutes)
+## Set up Supabase (about 5 minutes)
 
 1. **Create a project** at [supabase.com](https://supabase.com). Pick the
-   US West region for Burbank.
+   US West region for Burbank. (Done: `lhirannrwxcvqojuhrob`.)
 
-2. **Create the database.** Open **SQL Editor** and run these files in
-   order:
+2. **Create the database.** Open **SQL Editor → New query**, paste all of
+   [`supabase/setup.sql`](../supabase/setup.sql) and press **Run**. It creates:
+   - the tables, security rules, server functions, push trigger and realtime
+   - the services, prices, hours, phone numbers, locations and notification
+     messages
+   - the demo logins: `admin@suzyscleaners.com` / `SuzyAdmin2026!` (staff)
+     and `demo@suzyscleaners.com` / `Demo1234!` (customer)
+
+   If you prefer the migration files instead, run these in order:
    1. [`supabase/migrations/20261008000000_init.sql`](../supabase/migrations/20261008000000_init.sql)
       creates the tables, security rules, server functions, push trigger and
       realtime.
    2. [`supabase/migrations/20261008000100_seed_catalog.sql`](../supabase/migrations/20261008000100_seed_catalog.sql)
       adds the service catalog, hours, locations and notification messages.
-    3. [`supabase/migrations/20261009000000_rewards_invoice_and_pickup_rules.sql`](../supabase/migrations/20261009000000_rewards_invoice_and_pickup_rules.sql)
+   3. [`supabase/migrations/20261009000000_rewards_invoice_and_pickup_rules.sql`](../supabase/migrations/20261009000000_rewards_invoice_and_pickup_rules.sql)
       adds customer rewards, invoice-only order totals, next-day requests, the
       10-piece minimum and Sunday business hours. Run it after the first two.
 
-   If you use the Supabase CLI instead, run `supabase link` and then
-   `supabase db push`.
+   `setup.sql` is all of `supabase/migrations/` in one file. If you use the
+   Supabase CLI instead, run `supabase link` and then `supabase db push`.
+   After editing a migration, run `npm run db:setup-file` to rebuild it.
 
-3. **Create the staff login.** Go to **Authentication → Users → Add user**.
-   - Email: `admin@suzyscleaners.com`
-   - Password: your choice. Use a stronger one than the demo password.
-   - Turn on **Auto confirm user**.
+   Until this has run, sign-in shows "the database hasn't been set up".
 
-   Then run [`supabase/promote_admin.sql`](../supabase/promote_admin.sql) in
-   the SQL Editor. This is the only way to make someone an admin. The app can
-   never grant it.
+3. **Before launch, secure the staff login.** The demo passwords are
+   published in the README.
+   - Change the admin password: **Authentication → Users →** the admin user
+     **→ Send password recovery**, or delete it and add it again with
+     **Add user**, then run
+     [`supabase/promote_admin.sql`](../supabase/promote_admin.sql).
+   - Delete the `demo@suzyscleaners.com` customer.
+
+   Running SQL in the dashboard is the only way to make someone an admin.
+   The app can never grant it.
 
 4. **Choose how customers sign up.** Go to **Authentication → Sign In /
    Providers → Email**.
@@ -44,13 +56,14 @@ No screen code changes between the two.
      the app asks them to confirm before signing in.
    - If it's off, customers are signed in immediately after sign-up.
 
-5. **Connect the app.**
-   1. Copy `.env.example` to `.env.local`.
-   2. Fill in the **Project URL** and **anon public** key from **Project
-      Settings → API**. Never put the `service_role` key in the app.
-   3. Restart with `npx expo start --clear`.
-   4. For EAS builds, add the same two variables as EAS environment
-      variables.
+5. **Connect the app.** Already done: `.env` holds the project URL
+   (`https://lhirannrwxcvqojuhrob.supabase.co`) and the **publishable** key,
+   and Expo loads it automatically, including in EAS builds.
+   - After changing `.env`, restart with `npx expo start --clear` (Expo
+     bakes these values in at build time).
+   - To point a single machine at another project, put overrides in
+     `.env.local` (git-ignored).
+   - Never put the secret / `service_role` key in the app.
 
 6. **Push notifications.**
    1. Run `npx eas-cli init` so `extra.eas.projectId` is set in `app.json`.

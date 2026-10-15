@@ -46,7 +46,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test:db": "node supabase/tests/security.test.mjs"
+    "test:db": "node supabase/tests/security.test.mjs",
+    "db:setup-file": "node supabase/build-setup.mjs"
   },
   "private": true
 }

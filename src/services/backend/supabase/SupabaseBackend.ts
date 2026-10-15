@@ -19,6 +19,12 @@ import { createSupabaseClient } from './client';
 import { fromService, toCustomer, toMessage, toNotification, toOrder, toService, toUser } from './mappers';
 
 const BAD_LOGIN = 'That email and password don’t match our records.';
+const NOT_SET_UP =
+  'Sign-in isn’t available yet: the Suzy’s Cleaners database hasn’t been set up. (Staff: run supabase/setup.sql in the Supabase SQL Editor.)';
+const OFFLINE = 'Can’t reach Suzy’s Cleaners right now. Check your internet connection and try again.';
+
+const looksOffline = (e: { name?: string; message?: string; status?: number } | null | undefined) =>
+  !!e && (e.name === 'AuthRetryableFetchError' || e.status === 0 || /network request failed|failed to fetch|load failed/i.test(e.message ?? ''));
 
 const TABLE_TOPICS: Record<string, ChangeTopic> = {
   orders: 'orders',
@@ -110,15 +116,43 @@ export class SupabaseBackend implements Backend {
     return toUser(row);
   }
 
+  /**
+   * When sign-in fails, tell a setup or connection problem apart from a wrong
+   * password. Reads the public `settings` table, which exists once setup.sql has run.
+   */
+  private async setupProblem(): Promise<string | null> {
+    const { error } = await this.sb.from('settings').select('id').limit(1);
+    if (!error) return null;
+    if (looksOffline(error)) return OFFLINE;
+    // PGRST205 / 42P01: table not found → the migrations haven't been run.
+    if (error.code === 'PGRST205' || error.code === '42P01' || /schema cache|does not exist/i.test(error.message)) return NOT_SET_UP;
+    return null;
+  }
+
+  /** Load the profile for a freshly signed-in user, explaining setup problems. */
+  private async profileAfterAuth(id: string): Promise<User> {
+    try {
+      return await this.profile(id);
+    } catch (e) {
+      const problem = await this.setupProblem();
+      if (problem) {
+        await this.sb.auth.signOut();
+        throw new AuthError(problem);
+      }
+      throw e;
+    }
+  }
+
   private async signInWithRole(email: string, password: string, role: User['role']): Promise<AuthResult> {
     const { data, error } = await this.sb.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     if (error || !data.session) {
+      if (looksOffline(error)) throw new AuthError(OFFLINE);
       if (error?.message?.toLowerCase().includes('email not confirmed')) {
         throw new AuthError('Please confirm your email address first — check your inbox for the link.');
       }
-      throw new AuthError(BAD_LOGIN);
+      throw new AuthError((await this.setupProblem()) ?? BAD_LOGIN);
     }
-    const user = await this.profile(data.session.user.id);
+    const user = await this.profileAfterAuth(data.session.user.id);
     if (user.role !== role) {
       // Same message as a bad password so neither screen reveals which emails exist.
       await this.sb.auth.signOut();
@@ -153,11 +187,11 @@ export class SupabaseBackend implements Backend {
         password: input.password,
         options: { data: { name: input.name.trim(), phone: input.phone.trim() } },
       });
-      if (error) throw new AuthError(error.message);
+      if (error) throw new AuthError(looksOffline(error) ? OFFLINE : ((await this.setupProblem()) ?? error.message));
       if (!data.session) {
         throw new AuthError('Almost there! We sent a confirmation link to your email. Tap it, then sign in.');
       }
-      const user = await this.profile(data.session.user.id);
+      const user = await this.profileAfterAuth(data.session.user.id);
       return { session: { userId: user.id, role: user.role, token: data.session.access_token, issuedAt: new Date().toISOString() }, user };
     },
 
