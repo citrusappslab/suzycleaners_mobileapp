@@ -3,13 +3,11 @@ import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { serviceImages } from '@/components/brand/images';
 import { AppText, Button, Card, Icon, Screen } from '@/components/ui';
-import { useServices, useSettings } from '@/hooks/data';
-import { money } from '@/lib/format';
+import { useServices } from '@/hooks/data';
 import { colors, radius, spacing } from '@/theme';
 
 export default function Services() {
   const { services } = useServices();
-  const { settings } = useSettings();
   return (
     <Screen tabBarSpace>
       <View style={styles.head}>
@@ -31,10 +29,8 @@ export default function Services() {
               <AppText variant="small" numberOfLines={2}>
                 {s.tagline}
               </AppText>
-              <View style={styles.priceRow}>
-                <AppText variant="smallStrong" style={{ color: colors.navy }}>
-                  {s.bookable ? `From ${money(s.price)} ${s.unitLabel}` : `$${settings.minimumOrder} minimum`}
-                </AppText>
+              <View style={styles.invoiceRow}>
+                <AppText variant="smallStrong" style={{ color: colors.navy }}>Final invoice sent after item inspection</AppText>
                 <Icon name="arrow-right" size={18} color={colors.gold} />
               </View>
             </View>
@@ -52,5 +48,5 @@ const styles = StyleSheet.create({
   card: { flexDirection: 'row', overflow: 'hidden', minHeight: 128 },
   img: { width: 108, alignSelf: 'stretch', borderTopLeftRadius: radius.xl, borderBottomLeftRadius: radius.xl },
   body: { flex: 1, padding: spacing.md, gap: 4, justifyContent: 'center' },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
+  invoiceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
 });

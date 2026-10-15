@@ -32,7 +32,7 @@ export default function ManageServices() {
 
   return (
     <Screen>
-      <ScreenHeader title="Services & pricing" subtitle="Prices are used for customer estimates." />
+      <ScreenHeader title="Services" subtitle="Manage the services customers can request." />
       <View style={{ gap: spacing.md }}>
         {draft.map((s) => (
           <Card key={s.id} style={{ gap: spacing.sm }}>
@@ -53,18 +53,6 @@ export default function ManageServices() {
               onChangeText={(t) => patch(s.id, { highlights: t.split('\n').filter((x, i, a) => x.trim() || i === a.length - 1) })}
               multiline
             />
-            {s.bookable ? (
-              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <View style={{ flex: 1 }}>
-                  <TextField label="Price ($)" value={String(s.price)} onChangeText={(t) => patch(s.id, { price: Number(t.replace(/[^\d.]/g, '')) || 0 })} keyboardType="decimal-pad" />
-                </View>
-                <View style={{ flex: 1.4 }}>
-                  <TextField label="Unit" value={s.unitLabel} onChangeText={(unitLabel) => patch(s.id, { unitLabel })} />
-                </View>
-              </View>
-            ) : (
-              <AppText variant="small">Pickup & delivery pricing is controlled by the minimum order in Rules.</AppText>
-            )}
           </Card>
         ))}
         <Button title="Save Services" variant="dark" onPress={save} loading={saving} />

@@ -107,6 +107,8 @@ export default function OrderDetail() {
 
       <Card style={{ marginTop: spacing.md }}>
         <ListRow icon="calendar-clock" title={`${formatDay(order.pickupDate)} · ${order.timeWindow}`} subtitle="Requested pickup" />
+        {order.nextDayServiceRequested ? <><Divider /><ListRow icon="clock-fast" title="Next-day service requested" subtitle="Our representative will confirm availability" /></> : null}
+        {order.rewardRedemptionRequested ? <><Divider /><ListRow icon="star-four-points-outline" title="$100 reward requested" subtitle={order.rewardDiscount > 0 ? 'Applied to your final invoice' : 'Will be applied when the representative sends your invoice'} /></> : null}
         <Divider />
         <ListRow icon="map-marker-outline" title="Pickup" subtitle={fullAddress(order.pickupAddress)} />
         <Divider />

@@ -52,12 +52,20 @@ function SheetContent({ order, onClose }: { order: Order; onClose(): void }) {
   const submit = async () => {
     const parsed = total.trim() ? Number(total.replace(/[$,]/g, '')) : null;
     if (parsed !== null && (Number.isNaN(parsed) || parsed < 0)) return Alert.alert('Final total must be a number.');
+    if (parsed !== null && !['cleaning_in_progress', 'ready_for_pickup', 'ready_for_delivery', 'out_for_delivery', 'completed'].includes(status)) return Alert.alert('Send the final invoice after the items have been inspected.');
+    if (order.rewardRedemptionRequested && order.rewardDiscount === 0 && parsed !== null && parsed < 100) return Alert.alert('The invoice must be at least $100 before applying the reward.');
+    const sendingInvoice = parsed !== null && order.finalTotal == null;
     setBusy(true);
     try {
       await backend.admin.updateOrder(
         order.id,
         { status, finalTotal: parsed === null ? (order.finalTotal ?? null) : parsed },
-        notify ? { title: title.trim() || STATUS_META[status].label, body: body.trim() || settings.notificationTemplates[status].body } : null,
+        notify
+          ? {
+              title: customTitle?.trim() || (sendingInvoice ? 'Your final invoice is ready' : template.title),
+              body: customBody?.trim() || (sendingInvoice ? `Your final invoice is ready. Open order #${order.number} in the app to review the amount due.` : template.body),
+            }
+          : null,
       );
       toast.show({
         title: notify ? `${order.customerName.split(' ')[0]} notified` : 'Order updated',
@@ -111,7 +119,8 @@ function SheetContent({ order, onClose }: { order: Order; onClose(): void }) {
               })}
             </View>
 
-            <TextField label="Final total (optional)" icon="currency-usd" value={total} onChangeText={setTotal} keyboardType="decimal-pad" placeholder={`Estimate $${order.estimatedTotal}`} />
+            <TextField label={order.rewardRedemptionRequested && order.rewardDiscount === 0 ? 'Invoice subtotal before reward' : 'Final invoice amount'} icon="currency-usd" value={total} onChangeText={setTotal} keyboardType="decimal-pad" placeholder="Enter after inspecting items" />
+            {order.rewardRedemptionRequested && order.rewardDiscount === 0 ? <AppText variant="small">If the invoice is at least $100, $100 will be deducted automatically when saved.</AppText> : null}
 
             <View style={styles.notifyRow}>
               <Icon name="bell-ring-outline" />

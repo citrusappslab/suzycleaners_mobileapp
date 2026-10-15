@@ -146,6 +146,7 @@ export class LocalBackend implements Backend {
         phone: input.phone.trim(),
         addresses: [],
         notificationsEnabled: true,
+        rewardPoints: 0,
         createdAt: new Date().toISOString(),
       };
       const salt = randomSalt();
@@ -203,7 +204,11 @@ export class LocalBackend implements Backend {
       return [...db.services].sort((a, b) => a.sortOrder - b.sortOrder);
     },
     // Merge defaults so settings saved by an older app version pick up new fields (e.g. altPhone).
-    getSettings: async (): Promise<BusinessSettings> => ({ ...DEFAULT_SETTINGS, ...(await this.load()).settings }),
+    getSettings: async (): Promise<BusinessSettings> => {
+      const settings = { ...DEFAULT_SETTINGS, ...(await this.load()).settings };
+      settings.hours = settings.hours.map((h) => h.day === 'Sun' ? { ...h, open: h.open || '8:00 AM', close: h.close || '5:00 PM', closed: false } : h);
+      return settings;
+    },
   };
 
   // ───────────────────────────── customer orders
@@ -231,13 +236,13 @@ export class LocalBackend implements Backend {
         .map((l) => {
           const svc = db.services.find((s) => s.id === l.serviceId && s.active && s.bookable);
           if (!svc) throw new Error('One of the selected services is no longer available.');
-          return { serviceId: svc.id, name: svc.name, quantity: Math.min(99, Math.round(l.quantity)), unitPrice: svc.price };
+          return { serviceId: svc.id, name: svc.name, quantity: Math.min(99, Math.round(l.quantity)) };
         });
       if (!lines.length) throw new Error('Please choose at least one service.');
-      const estimatedTotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
-      if (estimatedTotal < db.settings.minimumOrder) {
-        throw new Error(`Pickup & delivery requires a $${db.settings.minimumOrder} minimum order.`);
-      }
+      const pieceCount = lines.reduce((sum, line) => sum + line.quantity, 0);
+      if (pieceCount < 10) throw new Error('Pickup requests require at least 10 pieces.');
+      const reservedPoints = db.orders.filter((o) => o.customerId === me.id && o.rewardRedemptionRequested && o.rewardDiscount === 0 && o.status !== 'cancelled').length * 1000;
+      if (input.rewardRedemptionRequested && (me.rewardPoints ?? 0) - reservedPoints < 1000) throw new Error('You need 1,000 available points to redeem $100 off.');
       const now = new Date().toISOString();
       const order: Order = {
         id: `ord-${uid()}`,
@@ -252,7 +257,10 @@ export class LocalBackend implements Backend {
         timeWindow: input.timeWindow,
         lines,
         instructions: input.instructions.slice(0, 500),
-        estimatedTotal,
+        nextDayServiceRequested: input.nextDayServiceRequested,
+        rewardRedemptionRequested: input.rewardRedemptionRequested,
+        rewardDiscount: 0,
+        pointsAwarded: 0,
         status: 'request_received',
         history: [{ status: 'request_received', at: now, by: 'customer' }],
         createdAt: now,
@@ -284,10 +292,20 @@ export class LocalBackend implements Backend {
       }
       const now = new Date().toISOString();
       order.status = 'cancelled';
+      order.rewardRedemptionRequested = false;
+      order.rewardDiscount = 0;
+      order.finalTotal = undefined;
       order.updatedAt = now;
       order.history.push({ status: 'cancelled', at: now, by: 'customer', note: 'Cancelled by customer' });
       await this.commit('orders');
       return order;
+    },
+  };
+
+  rewards = {
+    getBalance: async () => {
+      const db = await this.load();
+      return this.session ? (this.requireUser(db).rewardPoints ?? 0) : 0;
     },
   };
 
@@ -381,13 +399,40 @@ export class LocalBackend implements Backend {
       this.requireAdmin(db);
       const order = db.orders.find((o) => o.id === id);
       if (!order) throw new Error('Order not found.');
+      const nextStatus = update.status ?? order.status;
+      let redemptionCustomer: User | undefined;
+      if (update.finalTotal != null) {
+        if (!['cleaning_in_progress', 'ready_for_pickup', 'ready_for_delivery', 'out_for_delivery', 'completed'].includes(nextStatus)) {
+          throw new Error('Send the final invoice after the items have been inspected.');
+        }
+        if (order.rewardRedemptionRequested && order.rewardDiscount === 0) {
+          redemptionCustomer = db.users.find((u) => u.id === order.customerId);
+          const otherReservations = db.orders.filter((o) => o.customerId === order.customerId && o.id !== order.id && o.rewardRedemptionRequested && o.rewardDiscount === 0 && o.status !== 'cancelled').length * 1000;
+          if (!redemptionCustomer || (redemptionCustomer.rewardPoints ?? 0) - otherReservations < 1000) throw new Error('This customer no longer has enough available points to redeem the $100 reward.');
+          if (update.finalTotal < 100) throw new Error('The invoice must be at least $100 before applying the reward.');
+        }
+      }
       const now = new Date().toISOString();
       if (update.status && update.status !== order.status) {
         order.status = update.status;
         order.history.push({ status: update.status, at: now, by: 'admin', note: update.note });
       }
       if (update.finalTotal !== undefined) order.finalTotal = update.finalTotal ?? undefined;
+      if (update.finalTotal != null && redemptionCustomer) {
+        redemptionCustomer.rewardPoints -= 1000;
+        order.rewardDiscount = 100;
+        order.finalTotal = update.finalTotal - 100;
+      }
       order.updatedAt = now;
+
+      if (order.status === 'completed' && order.finalTotal != null && order.pointsAwarded === 0) {
+        const earned = Math.floor(order.finalTotal / 100) * 10;
+        const customer = db.users.find((u) => u.id === order.customerId);
+        if (customer && earned > 0) {
+          customer.rewardPoints = (customer.rewardPoints ?? 0) + earned;
+          order.pointsAwarded = earned;
+        }
+      }
 
       if (notify) {
         const customer = db.users.find((u) => u.id === order.customerId);
@@ -416,7 +461,7 @@ export class LocalBackend implements Backend {
           sendPush(customer.pushToken, notify.title, notify.body, { orderId: order.id }).catch(() => {});
         }
       }
-      await this.commit('orders', 'notifications', 'messages');
+      await this.commit('orders', 'notifications', 'messages', 'users');
       return order;
     },
 
@@ -509,7 +554,7 @@ export class LocalBackend implements Backend {
     saveServices: async (services: ServiceItem[]) => {
       const db = await this.load();
       this.requireAdmin(db);
-      db.services = services.map((s) => ({ ...s, price: Math.max(0, Number(s.price) || 0) }));
+      db.services = services;
       await this.commit('catalog');
     },
 
@@ -518,7 +563,6 @@ export class LocalBackend implements Backend {
       this.requireAdmin(db);
       db.settings = {
         ...settings,
-        minimumOrder: Math.max(0, Number(settings.minimumOrder) || 0),
         serviceRadiusMiles: Math.min(50, Math.max(1, Number(settings.serviceRadiusMiles) || 1)),
       };
       await this.commit('catalog');
@@ -531,7 +575,7 @@ export class LocalBackend implements Backend {
     return {
       ...u,
       orderCount: orders.length,
-      lifetimeValue: orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + (o.finalTotal ?? o.estimatedTotal), 0),
+      lifetimeValue: orders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + (o.finalTotal ?? 0), 0),
       lastOrderAt: last,
       unreadForAdmin: db.messages.filter((m) => m.customerId === u.id && !m.readByAdmin).length,
     };

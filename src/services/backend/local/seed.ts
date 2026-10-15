@@ -54,15 +54,14 @@ const customer = (id: string, name: string, email: string, phone: string, addres
   addresses,
   defaultAddressId: addresses[0]?.id,
   notificationsEnabled: true,
+  rewardPoints: 0,
   createdAt: at(-createdDaysAgo, 10),
 });
 
-const price = (id: string) => DEFAULT_SERVICES.find((s) => s.id === id)!;
 const line = (serviceId: string, quantity: number) => ({
   serviceId,
-  name: price(serviceId).name,
+  name: DEFAULT_SERVICES.find((s) => s.id === serviceId)!.name,
   quantity,
-  unitPrice: price(serviceId).price,
 });
 
 /** Build a status history up to (and including) `status`. */
@@ -93,6 +92,7 @@ export function buildSeed(): LocalDb {
     phone: DEMO_ADMIN.phone,
     addresses: [],
     notificationsEnabled: true,
+    rewardPoints: 0,
     createdAt: at(-400, 9),
   };
 
@@ -123,7 +123,6 @@ export function buildSeed(): LocalDb {
   ): Order => {
     const c = u(userId);
     const history = historyTo(status, opts.pickupOffset - 1, opts.delivery ?? true);
-    const estimatedTotal = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
     return {
       id: `ord-${n}`,
       number: n,
@@ -137,7 +136,10 @@ export function buildSeed(): LocalDb {
       timeWindow: opts.window,
       lines,
       instructions: opts.instructions ?? '',
-      estimatedTotal,
+      nextDayServiceRequested: false,
+      rewardRedemptionRequested: false,
+      rewardDiscount: 0,
+      pointsAwarded: 0,
       finalTotal: opts.finalTotal,
       status,
       history,

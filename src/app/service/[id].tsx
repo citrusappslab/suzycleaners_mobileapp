@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { serviceImages } from '@/components/brand/images';
 import { AppText, Button, Card, EmptyState, Icon, IconButton } from '@/components/ui';
 import { useServices, useSettings } from '@/hooks/data';
-import { money } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
 export default function ServiceDetail() {
@@ -47,15 +46,12 @@ export default function ServiceDetail() {
             ))}
           </Card>
 
-          <Card tone="sky" style={styles.price}>
-            <Icon name="tag-outline" size={22} />
-            <AppText variant="bodyStrong" style={{ flex: 1 }}>
-              {s.bookable ? `From ${money(s.price)} ${s.unitLabel}` : `Free with $${settings.minimumOrder} minimum order`}
-            </AppText>
+          <Card tone="sky" style={styles.invoiceSummary}>
+            <Icon name="receipt-text-outline" size={22} />
+            <AppText variant="bodyStrong" style={{ flex: 1 }}>Your representative will send the final invoice after inspecting your items.</AppText>
           </Card>
           <AppText variant="small" style={{ marginTop: spacing.xs }}>
-            Pickup & delivery available within ~{settings.serviceRadiusMiles} miles of our Burbank studio. ${settings.minimumOrder} minimum order. Final
-            pricing confirmed after inspection.
+            Pickup & delivery available within ~{settings.serviceRadiusMiles} miles of our Burbank studio. Pickup requires at least 10 pieces. Next-day turnaround is available on request and subject to confirmation.
           </AppText>
         </View>
       </ScrollView>
@@ -76,6 +72,6 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.md, gap: spacing.xs, marginTop: -40 },
   hl: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   hlIcon: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.sunshine, alignItems: 'center', justifyContent: 'center' },
-  price: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md, borderRadius: radius.lg },
+  invoiceSummary: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md, borderRadius: radius.lg },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: spacing.md, paddingTop: spacing.sm, backgroundColor: 'rgba(250,246,238,0.96)' },
 });

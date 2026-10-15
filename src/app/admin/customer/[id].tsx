@@ -32,6 +32,7 @@ export default function AdminCustomerProfile() {
         <View style={styles.metrics}>
           <Metric label="Orders" value={String(c.orderCount)} />
           <Metric label="Lifetime" value={money(c.lifetimeValue)} />
+          <Metric label="Points" value={String(c.rewardPoints)} />
           <Metric label="Unread" value={String(c.unreadForAdmin)} />
         </View>
       </Card>
@@ -72,7 +73,7 @@ export default function AdminCustomerProfile() {
               </AppText>
               <StatusBadge status={o.status} />
             </View>
-            <AppText style={styles.amount}>{money(o.finalTotal ?? o.estimatedTotal)}</AppText>
+            <AppText style={styles.amount}>{o.finalTotal != null ? money(o.finalTotal) : 'Invoice pending'}</AppText>
           </Card>
         ))}
       </View>

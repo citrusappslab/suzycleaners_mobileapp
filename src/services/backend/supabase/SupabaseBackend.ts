@@ -43,7 +43,8 @@ function check<T>(res: { data: T; error: PostgrestError | null }): T {
  *
  * All writes to orders, messages and notifications go through the
  * SECURITY DEFINER functions in supabase/migrations, which enforce roles,
- * prices, the minimum order and the service radius on the server. Row-level
+ * item-count minimum and the service radius on the server; staff sets the
+ * final invoice after inspection. Row-level
  * security limits every read to the caller's own rows unless they are admin.
  */
 export class SupabaseBackend implements Backend {
@@ -224,6 +225,8 @@ export class SupabaseBackend implements Backend {
             p_time_window: input.timeWindow,
             p_lines: input.lines,
             p_instructions: input.instructions,
+            p_next_day_service: input.nextDayServiceRequested,
+            p_redeem_reward: input.rewardRedemptionRequested,
           })
           .single(),
       );
@@ -275,6 +278,15 @@ export class SupabaseBackend implements Backend {
     },
   };
 
+  rewards = {
+    getBalance: async () => {
+      const id = await this.uid();
+      if (!id) return 0;
+      const row = check(await this.sb.from('profiles').select('reward_points').eq('id', id).single());
+      return Number(row?.reward_points ?? 0);
+    },
+  };
+
   // ───────────────────────────── admin (enforced by RLS + require_admin())
 
   admin = {
@@ -302,7 +314,7 @@ export class SupabaseBackend implements Backend {
           })
           .single(),
       );
-      this.changed('orders', 'messages');
+      this.changed('orders', 'messages', 'users');
       return toOrder(row as Record<string, unknown>);
     },
 
@@ -353,7 +365,6 @@ export class SupabaseBackend implements Backend {
     saveSettings: async (settings: BusinessSettings) => {
       const data: BusinessSettings = {
         ...settings,
-        minimumOrder: Math.max(0, Number(settings.minimumOrder) || 0),
         serviceRadiusMiles: Math.min(50, Math.max(1, Number(settings.serviceRadiusMiles) || 1)),
       };
       check(await this.sb.from('settings').update({ data, updated_at: new Date().toISOString() }).eq('id', 1));

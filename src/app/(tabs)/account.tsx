@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Alert } from '@/lib/dialog';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { AppText, Avatar, Button, Card, Divider, ListRow, Screen, Toggle } from '@/components/ui';
-import { useSettings } from '@/hooks/data';
+import { useMyOrders, useRewardsBalance, useSettings } from '@/hooks/data';
 import { businessPhones, callBusiness, emailBusiness, openDirections } from '@/lib/contact';
 import { useAuth } from '@/providers/AuthProvider';
 import { requestPermission } from '@/services/push';
@@ -13,9 +13,17 @@ import { colors, spacing } from '@/theme';
 export default function Account() {
   const { user, signOut, updateProfile } = useAuth();
   const { settings } = useSettings();
+  const { points } = useRewardsBalance();
+  const { orders } = useMyOrders();
+  const reservedOrders = orders.filter((o) => o.rewardRedemptionRequested && o.rewardDiscount === 0 && o.status !== 'cancelled');
+  const availablePoints = Math.max(0, points - reservedOrders.length * 1000);
 
   return (
     <Screen tabBarSpace>
+      <View style={{ alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.sm }}>
+        <BrandLogo width={180} />
+        <AppText variant="smallStrong" style={{ color: colors.success, marginTop: 2 }}>Open 7 days a week</AppText>
+      </View>
       <View style={{ marginTop: spacing.md, gap: 4 }}>
         <AppText variant="caption" style={{ color: colors.gold }}>
           Your concierge
@@ -37,7 +45,6 @@ export default function Account() {
         </Card>
       ) : (
         <Card style={{ gap: spacing.sm, marginTop: spacing.md }}>
-          <BrandLogo width={180} />
           <AppText variant="h2" style={{ textAlign: 'center' }}>
             Welcome to Suzy’s
           </AppText>
@@ -48,6 +55,16 @@ export default function Account() {
           <Button title="Create an Account" variant="outline" size="md" onPress={() => router.push('/auth/sign-up')} />
         </Card>
       )}
+
+      {user ? (
+        <Card tone="navy" style={{ marginTop: spacing.md, gap: spacing.xs }}>
+          <AppText variant="caption" style={{ color: colors.sunshine }}>Suzy’s Rewards</AppText>
+          <AppText style={{ color: colors.white, fontFamily: 'Inter_700Bold', fontSize: 30 }}>{availablePoints.toLocaleString()} available points</AppText>
+          <AppText variant="small" style={{ color: '#DCE6FA' }}>
+            {reservedOrders.length > 0 ? `${reservedOrders.length * 1000} points reserved for an open pickup${availablePoints >= 1000 ? ` · ${availablePoints} more available` : ''}.` : availablePoints >= 1000 ? 'Redeem 1,000 points for $100 off your next invoice.' : `${1000 - availablePoints} points until $100 off · Earn 10 points per $100 invoice.`}
+          </AppText>
+        </Card>
+      ) : null}
 
       {user ? (
         <Card padded={false} style={styles.group}>

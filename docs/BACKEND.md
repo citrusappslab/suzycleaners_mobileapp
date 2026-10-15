@@ -15,13 +15,16 @@ No screen code changes between the two.
 1. **Create a project** at [supabase.com](https://supabase.com). Pick the
    US West region for Burbank.
 
-2. **Create the database.** Open **SQL Editor** and run these two files in
+2. **Create the database.** Open **SQL Editor** and run these files in
    order:
    1. [`supabase/migrations/20261008000000_init.sql`](../supabase/migrations/20261008000000_init.sql)
       creates the tables, security rules, server functions, push trigger and
       realtime.
    2. [`supabase/migrations/20261008000100_seed_catalog.sql`](../supabase/migrations/20261008000100_seed_catalog.sql)
-      adds the services, prices, hours, locations and notification messages.
+      adds the service catalog, hours, locations and notification messages.
+    3. [`supabase/migrations/20261009000000_rewards_invoice_and_pickup_rules.sql`](../supabase/migrations/20261009000000_rewards_invoice_and_pickup_rules.sql)
+      adds customer rewards, invoice-only order totals, next-day requests, the
+      10-piece minimum and Sunday business hours. Run it after the first two.
 
    If you use the Supabase CLI instead, run `supabase link` and then
    `supabase db push`.
@@ -70,15 +73,15 @@ No screen code changes between the two.
 
   | Function | Who | What the server enforces |
   |----------|-----|--------------------------|
-  | `create_order` | customer | Recomputes prices from `services` (client prices are ignored), enforces the minimum order, valid time window, future date and service radius (from address coordinates) |
+  | `create_order` | customer | Enforces the 10-piece minimum, valid time window, future date and service radius (from address coordinates); customer-submitted prices are not used |
   | `cancel_my_order` | customer | Own order, only before pickup |
   | `send_my_message` | customer | Own thread, own orders only |
   | `admin_update_order` | admin | Status and history, final total, notification and message to the customer (which triggers the push) |
   | `admin_send_message`, `admin_mark_conversation_read`, `admin_list_customers`, `admin_list_conversations` | admin | `require_admin()` |
 - **Roles:**
   - New accounts are always `customer`; any role in sign-up data is ignored.
-  - A trigger stops anyone except an admin or the SQL editor from changing
-    `role` or `email`.
+  - A trigger stops customers from changing `role`, `email` or their reward
+    balance.
   - The staff screen signs out any non-admin and shows the same error as a
     wrong password, so neither login screen reveals which emails exist.
 - **Realtime:**
@@ -87,11 +90,16 @@ No screen code changes between the two.
     on every change.
   - Realtime respects row-level security, so customers only receive their
     own changes.
+- **Customer invoices and rewards:** Customers request services without seeing
+  prices. Staff sets and sends the final invoice after inspection. Completed
+  invoices earn 10 points per full $100; 1,000 points can be requested for $100
+  off a later invoice of at least $100. The database applies a redemption and
+  awards points at most once per order.
 
 Run `npm run test:db` to re-run the migration test against Postgres (PGlite), with stand-ins for
 Supabase's `auth`, `pg_net` and roles. The tests covered:
 - price tampering
-- the minimum order, radius, time window and date checks
+- the 10-piece minimum, radius, time window and date checks
 - customer-to-customer isolation
 - blocked direct writes
 - admin-only functions

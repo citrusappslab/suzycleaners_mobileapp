@@ -17,7 +17,6 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   altPhone: '(463) 583-0000',
   email: 'suzyscleaners@sbcglobal.net',
   website: 'https://suzyscleaners.com',
-  minimumOrder: 50,
   serviceRadiusMiles: 20,
   timeWindows: ['9–11 AM', '12–2 PM', '3–5 PM'],
   bookingDaysAhead: 7,
@@ -28,7 +27,7 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
     { day: 'Thu', open: '7:00 AM', close: '7:00 PM', closed: false },
     { day: 'Fri', open: '7:00 AM', close: '7:00 PM', closed: false },
     { day: 'Sat', open: '8:00 AM', close: '5:00 PM', closed: false },
-    { day: 'Sun', open: '', close: '', closed: true },
+    { day: 'Sun', open: '8:00 AM', close: '5:00 PM', closed: false },
   ],
   locations: [
     {
@@ -85,8 +84,6 @@ export const DEFAULT_SERVICES: ServiceItem[] = [
     description:
       'Suits, dresses, silks and delicates cleaned with gentle, certified solvents, then hand-pressed and inspected button by button.',
     highlights: ['Hand-finished pressing', 'Stain treatment included', 'Eco-friendly options'],
-    price: 14,
-    unitLabel: 'per garment',
     icon: 'hanger',
     image: 'dry-cleaning',
     active: true,
@@ -100,8 +97,6 @@ export const DEFAULT_SERVICES: ServiceItem[] = [
     description:
       'Specialty care for wedding gowns, couture, leather, suede and heirloom pieces — including preservation boxing.',
     highlights: ['Gown cleaning & preservation', 'Leather & suede', 'Wash & fold laundry'],
-    price: 10,
-    unitLabel: 'per item',
     icon: 'tshirt-crew-outline',
     image: 'garment-care',
     active: true,
@@ -115,8 +110,6 @@ export const DEFAULT_SERVICES: ServiceItem[] = [
     description:
       'Deep cleaning, deodorizing and conditioning for designer sneakers, leather dress shoes and heels.',
     highlights: ['Leather conditioning', 'Sole whitening', 'Deodorizing'],
-    price: 35,
-    unitLabel: 'per pair',
     icon: 'shoe-sneaker',
     image: 'shoe-cleaning',
     active: true,
@@ -130,8 +123,6 @@ export const DEFAULT_SERVICES: ServiceItem[] = [
     description:
       'Hems, tapering, sleeves, zippers and full re-fits by our in-house tailor. Fittings available by appointment.',
     highlights: ['Hems & tapering', 'Zipper & button repair', 'Formalwear fittings'],
-    price: 20,
-    unitLabel: 'starting, per item',
     icon: 'content-cut',
     image: 'tailoring',
     active: true,
@@ -143,10 +134,8 @@ export const DEFAULT_SERVICES: ServiceItem[] = [
     name: 'Pickup & Delivery',
     tagline: 'Concierge service at your door',
     description:
-      'We collect from your home or office and return everything fresh, pressed and on hangers. $50 minimum order within our service area.',
-    highlights: ['Free with $50 minimum', 'Same-day options', 'Contact-free drop-off'],
-    price: 0,
-    unitLabel: 'included',
+      'We collect from your home or office and return everything fresh, pressed and on hangers. Pickups require at least 10 pieces.',
+    highlights: ['10-piece pickup minimum', 'Next-day turnaround on request', 'Contact-free drop-off'],
     icon: 'truck-delivery-outline',
     image: 'pickup-delivery',
     active: true,

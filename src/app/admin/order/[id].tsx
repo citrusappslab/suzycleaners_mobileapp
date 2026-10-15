@@ -48,6 +48,8 @@ export default function AdminOrderDetail() {
         <SectionHeader title="Pickup & delivery" />
         <Card padded={false} style={styles.card}>
           <ListRow icon="calendar-clock" title={`${formatDay(order.pickupDate)} · ${order.timeWindow}`} subtitle="Requested pickup" />
+          {order.nextDayServiceRequested ? <><Divider /><ListRow icon="clock-fast" title="Next-day service requested" subtitle="Confirm availability with customer" /></> : null}
+          {order.rewardRedemptionRequested ? <><Divider /><ListRow icon="star-four-points-outline" title="$100 reward requested" subtitle={order.rewardDiscount > 0 ? 'Reward discount applied' : 'Apply when setting final invoice (minimum $100)'} /></> : null}
           <Divider />
           <ListRow icon="map-marker-outline" title="Pickup address" subtitle={fullAddress(order.pickupAddress)} />
           <Divider />
@@ -59,8 +61,7 @@ export default function AdminOrderDetail() {
         <SectionHeader title="Services" />
         <OrderLines order={order} />
         <AppText variant="small" style={{ marginTop: 6 }}>
-          Estimated ${order.estimatedTotal}
-          {order.finalTotal != null ? ` · Final $${order.finalTotal}` : ' · Final total not set'}
+          {order.finalTotal != null ? `Invoice amount due: $${order.finalTotal}` : 'No customer-facing price · Final invoice not set'}
         </AppText>
 
         <SectionHeader title="Status history" />
