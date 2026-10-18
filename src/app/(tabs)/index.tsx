@@ -43,7 +43,7 @@ export default function Home() {
           {settings.tagline}
         </AppText>
         <AppText variant="body" style={styles.sub}>
-          Pickup & delivery. Same-day options.
+          Pickup & delivery. Next-day service available on request.
         </AppText>
       </View>
 
@@ -52,7 +52,7 @@ export default function Home() {
         icon="calendar-month-outline"
         onPress={() => router.push('/schedule')}
         style={{ marginTop: spacing.lg }}
-        accessibilityHint={`Minimum order $${settings.minimumOrder}`}
+        accessibilityHint="Pickup requests require at least 10 pieces. Final invoice sent after inspection."
       />
 
       {active ? (

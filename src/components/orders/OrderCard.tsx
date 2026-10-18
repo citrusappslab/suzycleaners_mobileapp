@@ -17,7 +17,7 @@ export function OrderCard({ order }: { order: Order }) {
       <View style={styles.top}>
         <AppText variant="caption">Order #{order.number}</AppText>
         <AppText variant="bodyStrong" style={{ color: colors.navy900 }}>
-          {money(order.finalTotal ?? order.estimatedTotal)}
+          {order.finalTotal != null ? money(order.finalTotal) : 'Invoice pending'}
         </AppText>
       </View>
       <AppText variant="h3" numberOfLines={1}>

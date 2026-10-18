@@ -11,14 +11,10 @@ export default function Rules() {
     <Screen>
       <ScreenHeader title="Pickup & delivery rules" />
       <Card style={{ gap: spacing.md }}>
-        <TextField
-          label="Minimum order ($)"
-          icon="cash"
-          value={String(draft.minimumOrder)}
-          onChangeText={(t) => setDraft({ ...draft, minimumOrder: Number(t.replace(/[^\d.]/g, '')) || 0 })}
-          keyboardType="decimal-pad"
-          hint="Customers can't submit a pickup below this estimate."
-        />
+        <View style={{ gap: 4 }}>
+          <AppText variant="bodyStrong">Minimum pickup: 10 pieces</AppText>
+          <AppText variant="small">This required minimum is enforced by the app and database.</AppText>
+        </View>
         <View style={{ gap: 6 }}>
           <AppText variant="caption">Service radius (miles from Burbank studio)</AppText>
           <View style={{ flexDirection: 'row', gap: 8 }}>

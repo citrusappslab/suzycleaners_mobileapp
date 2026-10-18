@@ -28,6 +28,7 @@ export interface User {
   defaultAddressId?: string;
   pushToken?: string;
   notificationsEnabled: boolean;
+  rewardPoints: number;
   createdAt: string;
 }
 
@@ -46,9 +47,6 @@ export interface ServiceItem {
   tagline: string;
   description: string;
   highlights: string[];
-  /** Price used for estimates, per unit. */
-  price: number;
-  unitLabel: string; // "per garment", "per pair"
   icon: string; // Ionicons / MaterialCommunityIcons glyph key (see ServiceIcon)
   image: ServiceImageKey;
   active: boolean;
@@ -78,7 +76,6 @@ export interface OrderLine {
   serviceId: ServiceId;
   name: string;
   quantity: number;
-  unitPrice: number;
 }
 
 export interface StatusEvent {
@@ -102,8 +99,11 @@ export interface Order {
   timeWindow: string; // "9–11 AM"
   lines: OrderLine[];
   instructions: string;
-  estimatedTotal: number;
   finalTotal?: number;
+  nextDayServiceRequested: boolean;
+  rewardRedemptionRequested: boolean;
+  rewardDiscount: number;
+  pointsAwarded: number;
   status: OrderStatus;
   history: StatusEvent[];
   createdAt: string;
@@ -171,7 +171,6 @@ export interface BusinessSettings {
   altPhone: string;
   email: string;
   website: string;
-  minimumOrder: number;
   serviceRadiusMiles: number;
   timeWindows: string[];
   bookingDaysAhead: number;

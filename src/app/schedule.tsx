@@ -6,8 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddressSheet } from '@/components/AddressSheet';
 import { AuthGate } from '@/components/AuthGate';
 import { AppText, Button, Card, Checkbox, Chip, Divider, Icon, IconButton, Stepper, TextField } from '@/components/ui';
-import { useServices, useSettings } from '@/hooks/data';
-import { addressLine, dayName, money, parseDay, toDayKey } from '@/lib/format';
+import { useMyOrders, useRewardsBalance, useServices, useSettings } from '@/hooks/data';
+import { addressLine, dayName, parseDay, toDayKey } from '@/lib/format';
 import { useAuth } from '@/providers/AuthProvider';
 import { useToast } from '@/providers/NotificationProvider';
 import { backend } from '@/services/backend';
@@ -44,6 +44,8 @@ function ScheduleForm() {
   const { user, updateProfile } = useAuth();
   const { settings } = useSettings();
   const { services } = useServices();
+  const { points } = useRewardsBalance();
+  const { orders: myOrders } = useMyOrders();
   const toast = useToast();
   const bookable = services.filter((s) => s.bookable);
 
@@ -53,6 +55,8 @@ function ScheduleForm() {
   const [delivery, setDelivery] = useState<Address | undefined>(undefined); // undefined = same as pickup
   const [sheet, setSheet] = useState<'pickup' | 'delivery' | null>(null);
   const [instructions, setInstructions] = useState('');
+  const [nextDayServiceRequested, setNextDayServiceRequested] = useState(false);
+  const [rewardRedemptionRequested, setRewardRedemptionRequested] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Radius check result, tagged with the addresses it was computed for.
   const [areaCheck, setAreaCheck] = useState<{ key: string; result: ServiceAreaResult } | null>(null);
@@ -93,10 +97,12 @@ function ScheduleForm() {
   const area = pickup && areaCheck?.key === areaKey ? areaCheck.result : null;
 
   const lines = bookable.filter((s) => (qty[s.id] ?? 0) > 0).map((s) => ({ service: s, quantity: qty[s.id]! }));
-  const estimate = lines.reduce((sum, l) => sum + l.service.price * l.quantity, 0);
-  const minMet = estimate >= settings.minimumOrder;
+  const pieceCount = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const reservedPoints = myOrders.filter((o) => o.rewardRedemptionRequested && o.rewardDiscount === 0 && o.status !== 'cancelled').length * 1000;
+  const availablePoints = Math.max(0, points - reservedPoints);
+  const minMet = pieceCount >= 10;
   const outside = area?.status === 'outside';
-  const canSubmit = lines.length > 0 && minMet && !!pickup && !!date && !!timeWindow && !outside;
+  const canSubmit = lines.length > 0 && minMet && !!pickup && !!date && !!timeWindow && !outside && (!rewardRedemptionRequested || availablePoints >= 1000);
 
   const toggle = (id: string) => setQty((q) => ({ ...q, [id]: q[id] ? 0 : 1 }));
 
@@ -122,6 +128,8 @@ function ScheduleForm() {
         timeWindow,
         lines: lines.map((l) => ({ serviceId: l.service.id, quantity: l.quantity })),
         instructions: instructions.trim(),
+        nextDayServiceRequested,
+        rewardRedemptionRequested,
       });
       router.replace({ pathname: '/order/[id]', params: { id: order.id } });
       toast.show({ title: 'Pickup requested', body: `Order #${order.number} is in. We'll confirm shortly.`, icon: 'check-circle-outline' });
@@ -145,7 +153,7 @@ function ScheduleForm() {
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: on }}
-                  accessibilityLabel={`${s.name}, ${money(s.price)} ${s.unitLabel}`}
+                  accessibilityLabel={s.name}
                   onPress={() => toggle(s.id)}
                   style={styles.serviceRow}
                 >
@@ -153,15 +161,57 @@ function ScheduleForm() {
                   <Icon name={s.icon} size={24} color={colors.navy} />
                   <View style={{ flex: 1 }}>
                     <AppText style={styles.serviceName}>{s.name}</AppText>
-                    <AppText variant="small">
-                      {money(s.price)} {s.unitLabel}
-                    </AppText>
+                    <AppText variant="small">Add the number of pieces for this service</AppText>
                   </View>
                   {on ? <Stepper value={qty[s.id]!} min={1} onChange={(n) => setQty((q) => ({ ...q, [s.id]: n }))} /> : null}
                 </Pressable>
               </View>
             );
           })}
+        </Card>
+
+        <Card padded={false} style={{ gap: spacing.sm, padding: spacing.md }}>
+          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: nextDayServiceRequested }} onPress={() => setNextDayServiceRequested((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Checkbox checked={nextDayServiceRequested} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong">Request next-day service</AppText>
+              <AppText variant="small">Our team will confirm next-day turnaround availability.</AppText>
+            </View>
+          </Pressable>
+        </Card>
+
+        <Card padded={false} style={{ gap: spacing.xs, padding: spacing.md }}>
+          <AppText variant="bodyStrong">Pickup minimum: 10 pieces</AppText>
+          <AppText variant="small">No prices are shown at booking. A Suzy’s representative will inspect your items and send your final invoice.</AppText>
+        </Card>
+
+        <Card tone="navy" style={{ gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: colors.sunshine, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon name="star-four-points-outline" size={21} color={colors.navy900} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong" style={{ color: colors.white }}>Suzy’s Rewards</AppText>
+              <AppText variant="small" style={{ color: '#DCE6FA' }}>{availablePoints.toLocaleString()} available points</AppText>
+            </View>
+          </View>
+          <AppText variant="small" style={{ color: colors.white }}>
+            Earn 10 points for each full $100 on a completed invoice. Example: a $250 invoice earns 20 points.
+          </AppText>
+          <AppText variant="small" style={{ color: '#FFF4CC' }}>
+            1,000 points = $100 off an invoice of $100 or more.
+          </AppText>
+          {availablePoints >= 1000 ? (
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: rewardRedemptionRequested }} onPress={() => setRewardRedemptionRequested((v) => !v)} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: radius.md, padding: spacing.sm }}>
+              <Checkbox checked={rewardRedemptionRequested} />
+              <View style={{ flex: 1 }}>
+                <AppText variant="bodyStrong" style={{ color: colors.white }}>Use 1,000 points for $100 off</AppText>
+                <AppText variant="small" style={{ color: '#DCE6FA' }}>Your representative applies it to the final invoice.</AppText>
+              </View>
+            </Pressable>
+          ) : reservedPoints > 0 ? (
+            <AppText variant="small" style={{ color: '#DCE6FA' }}>Your points are reserved for an open pickup and will be released if you cancel.</AppText>
+          ) : null}
         </Card>
 
         {/* Addresses */}
@@ -224,26 +274,12 @@ function ScheduleForm() {
           accessibilityLabel="Special instructions"
         />
 
-        <Pressable
-          accessibilityRole="button"
-          onPress={() =>
-            Alert.alert(
-              'About your estimate',
-              `Estimates use our starting prices. Your final total is confirmed after we inspect your items. Pickup & delivery requires a $${settings.minimumOrder} minimum order.`,
-            )
-          }
-          style={[styles.estimate, !minMet && lines.length > 0 && { backgroundColor: colors.warningSoft }]}
-        >
-          <Icon name="tag-outline" size={22} color={colors.navy} />
+        <View style={[styles.estimate, !minMet && lines.length > 0 && { backgroundColor: colors.warningSoft }]}>
+          <Icon name="hanger" size={22} color={colors.navy} />
           <AppText style={styles.estimateText}>
-            {lines.length === 0
-              ? `Select services · $${settings.minimumOrder} minimum`
-              : minMet
-                ? `Estimated ${money(estimate)} · Minimum ${money(settings.minimumOrder)} met`
-                : `Estimated ${money(estimate)} · Add ${money(settings.minimumOrder - estimate)} to reach the ${money(settings.minimumOrder)} minimum`}
+            {lines.length === 0 ? 'Select services · 10-piece minimum' : minMet ? `${pieceCount} pieces selected · Minimum met` : `${pieceCount} of 10 pieces selected`}
           </AppText>
-          <Icon name="information-outline" size={20} color={colors.faint} />
-        </Pressable>
+        </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.sm }]}>

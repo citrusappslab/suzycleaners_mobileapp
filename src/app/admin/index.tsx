@@ -197,7 +197,7 @@ function OrderRow({ order, selected, onSelect }: { order: Order; selected: boole
           </AppText>
         </View>
       </View>
-      <AppText style={styles.amount}>{money(order.finalTotal ?? order.estimatedTotal)}</AppText>
+      <AppText style={styles.amount}>{order.finalTotal != null ? money(order.finalTotal) : 'Invoice pending'}</AppText>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open order ${order.number}`}

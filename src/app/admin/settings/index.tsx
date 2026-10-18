@@ -20,7 +20,7 @@ export default function AdminSettings() {
         <ListRow
           icon="map-marker-radius-outline"
           title="Pickup & delivery rules"
-          subtitle={`$${settings.minimumOrder} minimum · ${settings.serviceRadiusMiles} mi radius · ${settings.timeWindows.length} time windows`}
+          subtitle={`10-piece minimum · ${settings.serviceRadiusMiles} mi radius · ${settings.timeWindows.length} time windows`}
           onPress={() => router.push('/admin/settings/rules')}
         />
         <Divider />

@@ -61,6 +61,12 @@ export interface CreateOrderInput {
   timeWindow: string;
   lines: { serviceId: string; quantity: number }[];
   instructions: string;
+  nextDayServiceRequested: boolean;
+  rewardRedemptionRequested: boolean;
+}
+
+export interface RewardsApi {
+  getBalance(): Promise<number>;
 }
 
 export interface OrdersApi {
@@ -123,6 +129,7 @@ export interface Backend {
   orders: OrdersApi;
   messages: MessagesApi;
   notifications: NotificationsApi;
+  rewards: RewardsApi;
   admin: AdminApi;
   /** Realtime change feed (Supabase channels / Firestore snapshots in production). */
   subscribe(listener: (topic: ChangeTopic) => void): () => void;

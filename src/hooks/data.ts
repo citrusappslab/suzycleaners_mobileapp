@@ -38,6 +38,12 @@ export const useMyNotifications = () => {
   return { ...q, notifications: q.data ?? [] };
 };
 
+export const useRewardsBalance = () => {
+  const { user } = useAuth();
+  const q = useLiveQuery(() => (user ? backend.rewards.getBalance() : Promise.resolve(0)), ['users', 'orders'], [user?.id]);
+  return { ...q, points: q.data ?? user?.rewardPoints ?? 0 };
+};
+
 /* Admin data — every call is role-checked by the backend */
 
 export const useAdminOrders = () => {

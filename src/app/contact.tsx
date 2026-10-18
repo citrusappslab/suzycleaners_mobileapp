@@ -69,7 +69,7 @@ export default function Contact() {
       <SectionHeader title="Pickup & delivery" />
       <Card style={{ gap: 6 }}>
         <ListRow icon="map-marker-radius-outline" title={`Within ~${settings.serviceRadiusMiles} miles of Burbank`} subtitle="Burbank, Glendale, Pasadena, North Hollywood, Studio City & nearby" />
-        <ListRow icon="cash" title={`$${settings.minimumOrder} minimum order`} subtitle="Pickup & delivery included" />
+        <ListRow icon="hanger" title="10-piece pickup minimum" subtitle="Final invoice sent after inspection" />
       </Card>
 
       <View style={{ marginTop: spacing.md }}>
