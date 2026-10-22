@@ -47,6 +47,8 @@ export interface AuthApi {
   signInStaff(email: string, password: string): Promise<AuthResult>;
   signOut(): Promise<void>;
   updateProfile(patch: ProfilePatch): Promise<User>;
+  /** Permanently deletes the signed-in customer's own account and data, then signs out. Staff are refused. */
+  deleteAccount(): Promise<void>;
 }
 
 export interface CatalogApi {

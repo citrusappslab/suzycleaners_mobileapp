@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal"
+    },
+    "production": {
+      "autoIncrement": true
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6825646670",
+        "appleTeamId": "H8C88KB3GQ",
+        "ascApiKeyPath": "/Users/naneabrahamyan/.appstoreconnect/private_keys/AuthKey_G55TY87RG7.p8",
+        "ascApiKeyId": "G55TY87RG7",
+        "ascApiKeyIssuerId": "69a6de89-2849-47e3-e053-5b8c7c11a4d1"
+      }
+    }
+  }
+}

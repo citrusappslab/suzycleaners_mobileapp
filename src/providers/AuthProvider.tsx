@@ -12,6 +12,7 @@ interface AuthState {
   signUp(input: SignUpInput): Promise<User>;
   signOut(): Promise<void>;
   updateProfile(patch: ProfilePatch): Promise<User>;
+  deleteAccount(): Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -64,9 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return u;
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    await backend.auth.deleteAccount();
+    setUser(null);
+  }, []);
+
   const value = useMemo<AuthState>(
-    () => ({ user, ready, isAdmin: user?.role === 'admin', signIn, signInStaff, signUp, signOut, updateProfile }),
-    [user, ready, signIn, signInStaff, signUp, signOut, updateProfile],
+    () => ({ user, ready, isAdmin: user?.role === 'admin', signIn, signInStaff, signUp, signOut, updateProfile, deleteAccount }),
+    [user, ready, signIn, signInStaff, signUp, signOut, updateProfile, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

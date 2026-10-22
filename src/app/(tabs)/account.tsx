@@ -11,7 +11,7 @@ import { requestPermission } from '@/services/push';
 import { colors, fonts, radius, spacing } from '@/theme';
 
 export default function Account() {
-  const { user, signOut, updateProfile } = useAuth();
+  const { user, signOut, updateProfile, deleteAccount } = useAuth();
   const { settings } = useSettings();
   const { points } = useRewardsBalance();
   const { orders } = useMyOrders();
@@ -168,6 +168,33 @@ export default function Account() {
               ])
             }
           />
+          {user.role === 'customer' ? (
+            <>
+              <Divider />
+              <ListRow
+                icon="account-remove-outline"
+                title="Delete account"
+                subtitle="Permanently remove your account and order history"
+                danger
+                chevron={false}
+                onPress={() =>
+                  Alert.alert(
+                    'Delete your account?',
+                    'This permanently deletes your account, saved addresses, orders, messages and reward points. This can’t be undone.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Delete',
+                        style: 'destructive',
+                        onPress: () =>
+                          deleteAccount().catch((e: Error) => Alert.alert('Couldn’t delete your account', e.message)),
+                      },
+                    ],
+                  )
+                }
+              />
+            </>
+          ) : null}
         </Card>
       ) : null}
 

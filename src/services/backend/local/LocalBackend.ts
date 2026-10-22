@@ -194,6 +194,20 @@ export class LocalBackend implements Backend {
       await this.commit('users');
       return { ...user };
     },
+
+    deleteAccount: async () => {
+      const db = await this.load();
+      const me = this.requireUser(db);
+      if (me.role !== 'customer') throw new ForbiddenError('Only customer accounts can be deleted from the app.');
+      db.users = db.users.filter((u) => u.id !== me.id);
+      db.credentials = db.credentials.filter((c) => c.userId !== me.id);
+      db.orders = db.orders.filter((o) => o.customerId !== me.id);
+      db.messages = db.messages.filter((m) => m.customerId !== me.id);
+      db.notifications = db.notifications.filter((n) => n.userId !== me.id);
+      this.session = null;
+      await secureStorage.remove(SESSION_KEY);
+      await this.commit('users', 'orders', 'messages', 'notifications', 'session');
+    },
   };
 
   // ───────────────────────────── catalog (public)

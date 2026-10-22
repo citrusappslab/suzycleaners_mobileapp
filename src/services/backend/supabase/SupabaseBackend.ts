@@ -202,6 +202,12 @@ export class SupabaseBackend implements Backend {
       await this.sb.auth.signOut();
     },
 
+    deleteAccount: async () => {
+      check(await this.sb.rpc('delete_my_account'));
+      // The server session is gone with the user; clear the local one without calling the API.
+      await this.sb.auth.signOut({ scope: 'local' });
+    },
+
     updateProfile: async (patch: ProfilePatch) => {
       const id = await this.uid();
       if (!id) throw new AuthError('Please sign in to continue.');

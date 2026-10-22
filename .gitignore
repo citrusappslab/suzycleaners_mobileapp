@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Apple / signing keys
+*.p8
+*.p12
+*.mobileprovision
